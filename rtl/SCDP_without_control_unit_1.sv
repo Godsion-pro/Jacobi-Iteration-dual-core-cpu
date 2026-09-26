@@ -19,7 +19,7 @@ module SCDP_without_control_unit_1 (
     input  logic [2:0]  ALUoperation,
     output logic [5:0]  opcode,
     output logic [5:0]  func,
-    exchange_if intf,
+    exchange_if.core1 intf,  // [compat] explicit modport (Verilator 5.x rejects generic port + modport connection)
     input logic rec
 );
 
