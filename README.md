@@ -16,6 +16,7 @@
 | 전력 | 8.71 mW (코어0 4.50 mW, 코어1 4.21 mW, 누설 10 µW) | 보고서, Oasys `report_power` (동작 조건 기록 없음) |
 | div 명령 지연 | 2.624 ns (clk 상승 → 목적 레지스터 반영) | 보고서, 게이트 레벨 시뮬레이션 1건 관측치. STA 기반 Fmax 아님 |
 | STA 재분석 (2026) | 크리티컬 패스는 조합 64-bit 나눗셈기: div → RF 54.03 ns (Nangate45 typ, Fmax 18.5 MHz) | [`docs/sta_reanalysis.md`](docs/sta_reanalysis.md), 공개 라이브러리 기준이라 절대값은 비교용 아님 |
+| 개선: 역수 곱셈 (2026) | 나눗셈을 1/a_ii 곱셈으로 바꾸고 나눗셈기 제거 → 제약 없는 STA 최악 경로 55.38 → 6.70 ns (**8.3×**), 면적 −32%. 사이클 수 동일, 결과는 x4만 1 LSB 차이 | [`variants/recip.patch`](variants/recip.patch), `make check VARIANT=recip` |
 
 ## 구조
 
@@ -110,12 +111,12 @@ MIPS I 포맷을 따르되 아래가 다릅니다. 전체 인코딩은 [`sw/asm.
 |---|---|---|
 | 고정 반복 횟수 | 수렴 판정 없이 50회 고정. Q15.16 해는 **12회차 이후 변하지 않아** 이후 38회(1,672 cycle)는 결과에 기여하지 않음 | `x(k+1) == x(k)` 또는 `|Δx| < ε` 검사로 조기 종료. 검사 명령 오버헤드를 빼면 2,200 → 572 cycle(13회) 수준으로 추정 |
 | 병렬화 이득 | 단일 코어 기준 구현이 없어 실측 speedup 없음 | 명령 수로 추정하면 단일 코어 79 vs 듀얼 44 명령/반복 → 약 1.8×. 2×에 못 미치는 원인은 루프 제어 7명령과 `rec`가 코어마다 중복되기 때문 |
-| ALU 면적·타이밍 | 조합 64-bit 곱셈·나눗셈이 코어 면적의 61% (560,661 / 919,363 µm²). STA 재분석에서 div 경로 54.03 ns로 다음 병목 mul(7.29 ns)의 7.4배 | `a_ii`는 상수이므로 `1/a_ii`를 미리 구해 `div`를 `mul`로 대체, 또는 다중 사이클 divider |
+| ALU 면적·타이밍 | 조합 64-bit 곱셈·나눗셈이 코어 면적의 61% (560,661 / 919,363 µm²). STA 재분석에서 div 경로 54.03 ns로 다음 병목 mul(7.29 ns)의 7.4배 | **적용함 (`variants/recip.patch`)**: `a_ii`는 상수이므로 `1/a_ii`를 미리 저장하고 `div`를 `mul`로 대체, 나눗셈기 제거 → 55.38 → 6.70 ns, 면적 −32% |
 | 분기 경로 | `zero`를 ALU 결과 mux 뒤에서 계산해, 쓰이지 않는 div → zero → PC 경로가 STA 최악 경로(55.38 ns)로 잡힘 | `zero`를 전용 비교기(`A == B`)로 분리: beq 경로 6.92 → 5.13 ns, 기능 동일 확인 ([STA 재분석](docs/sta_reanalysis.md)) |
 | 동기화 | 핸드셰이크 없이 lockstep에 의존. 두 코어의 명령 수가 달라지면 이전 반복 값을 읽음 | valid 비트 또는 barrier 명령. 재검증 TB에서는 매 사이클 PC 비교로 전제를 명시 |
 | `bne` | control_unit이 `beq`와 같은 신호를 내서 `bne`도 zero일 때 분기 | 프로그램에서 미사용. branch 종류를 구분하는 제어 신호 추가 필요 |
 | `$zero` | 하드와이어가 아님. 리셋 중 명령이 `0x00000000`으로 강제되고 이것이 `rd=0` R-type으로 디코드되어 r0에 0이 기록되는 암묵적 동작에 의존 | r0 쓰기 금지·읽기 0 고정 |
-| ALU lint | `always_comb`에서 `wide_mul`, `wide_dividend`가 일부 경로에서 미할당 → Verilator LATCH 경고 | 블록 시작에서 기본값 할당 |
+| ALU lint | `always_comb`에서 `wide_mul`, `wide_dividend`가 일부 경로에서 미할당 → Verilator LATCH 경고 (합성 후 latch는 0개) | 블록 시작에서 기본값 할당 |
 | 원본 assertion | `assert (cond) $display(...)`를 조건 트레이스 용도로 써서, 조건이 거짓인 사이클마다 `Assertion error`가 출력됨 | 재검증 TB에서 이벤트 카운터와 불변식 검사(lockstep, fetch 범위)로 분리 |
 | 확장성 | 4×4, 2코어, 주소가 명령에 하드코딩 | 행 수를 파라미터화하고 base 레지스터 기반 주소 지정 |
 
@@ -123,14 +124,21 @@ MIPS I 포맷을 따르되 아래가 다릅니다. 전체 인코딩은 [`sw/asm.
 
 보고서의 "div 지연 2.624 ns"가 Fmax 근거가 될 수 있는지 확인하려고, 원본 RTL을 공개 툴체인(sv2v → Yosys → OpenSTA, Nangate45 slow/typ/fast)으로 다시 합성하고 STA를 했습니다. 명령어 종류별로 case analysis와 false path 제약을 걸어, 실제로 신호가 타는 경로와 구조상으로만 긴 경로를 나눠 봤습니다. 과정과 막혔던 점은 [`docs/sta_reanalysis.md`](docs/sta_reanalysis.md)에 정리했습니다.
 
-| 경로 (typ) | 원본 | zero 전용 비교기 |
-|---|---:|---:|
-| 제약 없이 본 최악 경로 | 55.38 ns (div → zero → PC, false path) | 55.19 ns (div → sw 주소 비교 → 교환 버퍼, false path) |
-| div → RF, 직접 경로 (Fmax 결정) | **54.03 ns → 18.5 MHz** | 53.99 ns |
-| mul → RF, 직접 경로 | 7.29 ns | 7.29 ns |
-| beq → PC | 6.92 ns | **5.13 ns (−26%)** |
+| 경로 (typ, ns) | 원본 | zero 전용 비교기 | **역수 곱셈 (recip)** | recip + zero 비교기 |
+|---|---:|---:|---:|---:|
+| 제약 없이 본 최악 경로 | 55.38 | 55.19 | **6.70** | 6.68 |
+| 명령어별 최악 | 54.79 (div) | 54.57 (div) | 6.44 (mul) | 6.43 (mul) |
+| div → RF, 직접 경로 | **54.03 (18.5 MHz)** | 53.99 | 나눗셈기 없음 | 나눗셈기 없음 |
+| mul → RF, 직접 경로 | 7.29 | 7.29 | 5.86 | 5.94 |
+| beq → PC | 6.92 | **5.13** | 5.94 | 4.62 |
+| cells / 면적 (µm²) | 34,849 / 50,386 | 35,018 / 50,419 | **21,848 / 34,322** | 21,795 / 34,259 |
+| 반복 1회 (44 cycle × 최악 경로) | 2.44 µs | 2.43 µs | **0.295 µs** | 0.294 µs |
 
-- Fmax는 조합 나눗셈기가 결정합니다. 나눗셈기를 한 사이클에서 빼면 다음 병목은 mul(7.3 ns)입니다.
+- 원본의 Fmax는 조합 나눗셈기가 결정합니다. 54 ns 중 49 ns가 나눗셈기 한 블록이라, CPU를 파이프라인으로 나눠도 그 단계가 약 50 ns로 남습니다.
+- 그래서 먼저 **나눗셈을 없앴습니다(recip)**. a_ii는 반복 내내 상수이므로 1/a_ii(Q15.16)를 대각 원소 자리에 미리 저장하고, 코어당 `div` 2개를 `mul`로 바꾼 뒤 ALU에서 나눗셈기를 제거했습니다. 제약 없는 최악 경로가 **8.3배** 짧아지고 면적은 32% 줄었습니다.
+  - 사이클 수(End까지 2,201)는 그대로입니다. 결과는 x4만 9063 → 9064로, 정확한 해와의 오차가 0.75 → 0.25 LSB로 오히려 줄었습니다.
+  - self-check TB의 50회 반복 전 구간과 랜덤 초기값 3 seed가 모두 PASS입니다.
+- recip 이후에는 mul 직접 경로(5.86 ns)의 약 46%를 명령어 ROM 디코드(약 2.7 ns)가 차지합니다. 이제는 한 블록이 사이클을 지배하지 않으므로, 다음 단계는 IF를 떼어내는 파이프라인입니다. 다만 이 합성 흐름은 fanout 버퍼링을 하지 않아 디코드 지연이 부풀려져 있습니다(자세한 내용은 문서 참고).
 - 일반 STA의 최악 경로는 div 실행 중에는 쓰이지 않는 div → zero → PC false path였습니다. zero를 전용 비교기로 분리하면 이 경로가 사라지고 beq가 26% 짧아집니다. self-check TB로 기능이 같음을 확인했습니다.
 - 45 nm typ에서도 나눗셈기 최악 지연이 약 54 ns라서, 보고서의 2.624 ns는 특정 피연산자에서 관측된 값으로 봐야 합니다.
 - 전체 corner·명령어별 결과는 [`syn/results/`](syn/results/)에 있습니다.
@@ -178,6 +186,8 @@ make wave          # build/wave.vcd
 make sim           # 원본 테스트벤치(검사 없음)
 make lint
 make sta-tools && make sta   # STA 재분석 (Yosys + OpenSTA, 합성 ~45분)
+make check VARIANT=recip     # 개선 변형 검증 (variants/*.patch, + 로 조합: recip+zero_cmp)
+make sta VARIANT=recip       # 개선 변형 STA (나눗셈기가 없어 수 분)
 make check RTL_DIR=<dir>   # 다른 RTL 트리(예: 원본 커밋 checkout)로 같은 검사
 ```
 
