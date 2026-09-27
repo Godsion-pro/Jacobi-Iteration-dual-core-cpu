@@ -9,6 +9,8 @@ opt_clean
 tee -o latches.txt select -count t:$dlatch* t:$_DLATCH*
 # keep module-boundary nets so the path report shows which stage a path goes through
 setattr -set keep 1 w:*SCDP.zero w:*SCDP.AluData w:*SCDP.read_data_1 w:*SCDP.read_data_2 w:*SCDP.ALU_operand2 w:*SCDP.instruction w:*SCDP.Mem_or_ALU w:*SCDP.MemData w:*.ALUoperation w:*.branch
+# same for the pipelined core (variants/pipe): forwarding muxes, ALU result, branch decision, stall
+setattr -set keep 1 w:*core.fwd_a w:*core.fwd_b w:*core.alu_result w:*core.alu_zero w:*core.ex_taken w:*core.stall w:*core.rd1 w:*core.rd2 w:*core.wb_data
 synth -top syn_top
 dfflibmap -liberty lib_typ.lib
 abc -liberty lib_typ.lib

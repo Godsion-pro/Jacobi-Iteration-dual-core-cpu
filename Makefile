@@ -8,8 +8,12 @@
 #   make golden       print the golden-model convergence table
 #   make sta-tools    install yosys / sv2v / OpenSTA into $(TOOLS)   (see syn/setup_tools.sh)
 #   make sta          synthesize (Nangate45) + OpenSTA  (~45 min with the divider)
-#   VARIANT=<v>       apply variants/<v>.patch (join with +), e.g. recip, zero_cmp, recip+zero_cmp
+#   make pnr-tools    install OpenROAD + Nangate45 LEFs into $(TOOLS)  (syn/setup_openroad.sh)
+#   make pnr PERIOD=n OpenROAD place / repair_design / CTS / repair_timing on the sta netlist
+#   VARIANT=<v>       apply variants/<v>.patch or overlay variants/<v>/ (join with +),
+#                     e.g. recip, zero_cmp, recip+zero_cmp, recip+pipe
 #   RTL_DIR=<dir>     run a target against another RTL tree (default: rtl or the patched variant)
+#   Cadence (Genus / Innovus / Tempus, gsclib045): see syn/cadence/README.md
 
 VERILATOR ?= verilator
 PYTHON    ?= python3
@@ -26,27 +30,33 @@ else
 RTL_DIR   ?= $(BUILD)/rtl_$(VARIANT)
 VBUILD    := $(BUILD)/$(VARIANT)
 RTL        = $(RTL_DIR)/.stamp
-PATCHES   := $(foreach p,$(subst +, ,$(VARIANT)),variants/$(p).patch)
+PARTS     := $(subst +, ,$(VARIANT))
+VSRC      := $(wildcard $(foreach p,$(PARTS),variants/$(p).patch variants/$(p)/*.sv))
 endif
 GOLDEN_FLAGS := $(if $(findstring recip,$(VARIANT)),--recip,)
+VDEFS        := $(if $(findstring pipe,$(VARIANT)),-DPIPE,)
 
 # MODDUP: every processor `includes the shared leaf modules again (original structure).
-VFLAGS = --binary --timing --assert -I$(RTL_DIR) -Itb -I$(VBUILD) \
+VFLAGS = --binary --timing --assert -I$(RTL_DIR) -Itb -I$(VBUILD) $(VDEFS) \
          -Wno-fatal -Wno-MODDUP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
 
-.PHONY: help check check-random sim wave lint asm-check golden sta-tools sta clean
+.PHONY: help check check-random sim wave lint asm-check golden sta-tools sta pnr-tools pnr clean
 
 help:
-	@sed -n '2,13p' Makefile | sed 's/^# //'
+	@sed -n '2,17p' Makefile | sed 's/^# //'
 
 $(VBUILD):
 	@mkdir -p $@
 
 ifneq ($(VARIANT),baseline)
-# patched copy of rtl/ for a variant
-$(RTL_DIR)/.stamp: $(wildcard rtl/*.sv) $(PATCHES)
+# copy of rtl/ with each part applied in order: variants/<p>.patch, or files from variants/<p>/
+$(RTL_DIR)/.stamp: $(wildcard rtl/*.sv) $(VSRC)
 	rm -rf $(RTL_DIR) && mkdir -p $(RTL_DIR) && cp rtl/*.sv $(RTL_DIR)/
-	for p in $(PATCHES); do patch -s -d $(RTL_DIR) -p1 < $$p; done
+	for p in $(PARTS); do \
+	  if [ -f variants/$$p.patch ]; then patch -s -d $(RTL_DIR) -p1 < variants/$$p.patch; \
+	  elif [ -d variants/$$p ]; then cp variants/$$p/*.sv $(RTL_DIR)/; \
+	  else echo "unknown variant part $$p" >&2; exit 1; fi; \
+	done
 	touch $@
 endif
 
@@ -96,6 +106,13 @@ sta-tools:
 
 sta:
 	TOOLS=$(TOOLS) BUILD=$(BUILD) syn/flow.sh $(VARIANT)
+
+pnr-tools:
+	syn/setup_openroad.sh $(TOOLS)
+
+PERIOD ?= 10
+pnr:
+	TOOLS=$(TOOLS) BUILD=$(BUILD) PERIOD=$(PERIOD) syn/run_pnr.sh $(VARIANT)
 
 clean:
 	rm -rf $(BUILD)

@@ -1,0 +1,6 @@
+# T_min = PERIOD - worst setup slack (PERIOD=10 ns, ideal clock, no wire parasitics)
+# T_direct: div/mul/add only, ALU result -> MemToReg mux -> RF (same bit), excludes merged address-path false paths
+corner mode   T_min_ns  Fmax_MHz  T_direct  start  -> end     named nets on the worst path
+typ   none       4.24     235.8         -  MEM/WB -> ID/EX   core.mem_wb_wr>core.fwd_a>core.ex_taken
+slow  none      15.82      63.2         -  MEM/WB -> ID/EX   core.mem_wb_wr>core.fwd_a>core.ex_taken
+fast  none       2.30     434.8         -  MEM/WB -> ID/EX   core.mem_wb_wr>core.fwd_a>core.ex_taken

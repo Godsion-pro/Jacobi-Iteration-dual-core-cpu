@@ -21,20 +21,28 @@ proc ff_names {pat} {
   }
   return [lsort -unique $names]
 }
-set RF   [ff_names {i*.SCDP.register_file.Registers*}]
-set DMEM [ff_names {i*.SCDP.data_memory.Memory*}]
+set RF   [ff_names {i*.*register_file.Registers*}]
+set DMEM [ff_names {i*.*data_memory.Memory*}]
 set XBUF [ff_names {intf.buf*}]
+# pipeline registers of variants/pipe (empty for the single-cycle core)
+set IFID  [ff_names {i*.core.if_id_*}]
+set IDEX  [ff_names {i*.core.id_ex_*}]
+set EXMEM [ff_names {i*.core.ex_mem_*}]
+set MEMWB [ff_names {i*.core.mem_wb_*}]
 # PC bits: every remaining flop (some PC Q nets lose their names in synthesis)
 set PC {}
+set named [lsort [concat $RF $DMEM $XBUF $IFID $IDEX $EXMEM $MEMWB]]
 foreach reg [all_registers -cells] {
   set c [get_full_name $reg]
-  if {[lsearch -sorted $RF $c] < 0 && [lsearch -sorted $DMEM $c] < 0 && [lsearch -sorted $XBUF $c] < 0} { lappend PC $c }
+  if {[lsearch -sorted $named $c] < 0} { lappend PC $c }
 }
-puts "FF groups: RF=[llength $RF] DMEM=[llength $DMEM] XBUF=[llength $XBUF] PC=[llength $PC]"
+puts "FF groups: RF=[llength $RF] DMEM=[llength $DMEM] XBUF=[llength $XBUF] PC=[llength $PC] IF/ID=[llength $IFID] ID/EX=[llength $IDEX] EX/MEM=[llength $EXMEM] MEM/WB=[llength $MEMWB]"
 
 proc cls {cellname} {
-  global RF DMEM XBUF PC
-  foreach g {RF DMEM XBUF PC} { if {[lsearch -exact [set $g] $cellname] >= 0} { return $g } }
+  global RF DMEM XBUF PC IFID IDEX EXMEM MEMWB
+  foreach g {RF DMEM XBUF IFID IDEX EXMEM MEMWB PC} {
+    if {[lsearch -exact [set $g] $cellname] >= 0} { return [string map {IFID IF/ID IDEX ID/EX EXMEM EX/MEM MEMWB MEM/WB} $g] }
+  }
   return port
 }
 
