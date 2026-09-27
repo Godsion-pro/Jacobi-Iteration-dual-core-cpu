@@ -1,0 +1,24 @@
+# T_min = PERIOD - worst setup slack (PERIOD=10 ns, ideal clock, no wire parasitics)
+# T_direct: div/mul/add only, ALU result -> MemToReg mux -> RF (same bit), excludes merged address-path false paths
+corner mode   T_min_ns  Fmax_MHz  T_direct  start -> end    named nets on the worst path
+typ   none       6.68     149.7         -  PC    -> DMEM   instruction>read_data_2>AluData
+typ   div        3.34     299.4         -  PC    -> RF     instruction
+typ   mul        6.43     155.5      5.94  PC    -> RF     instruction>read_data_2>AluData>Mem_or_ALU
+typ   add        5.60     178.6      5.33  PC    -> RF     instruction>read_data_2>AluData>Mem_or_ALU
+typ   lw         5.61     178.3         -  PC    -> RF     instruction>read_data_2>AluData>MemData>Mem_or_ALU
+typ   sw         5.80     172.4         -  PC    -> DMEM   instruction>read_data_2>AluData
+typ   beq        4.62     216.5         -  PC    -> PC     instruction>read_data_2>alu.zero>_00000_
+slow  none      24.06      41.6         -  PC    -> DMEM   instruction>read_data_2>AluData
+slow  div       10.95      91.3         -  PC    -> RF     instruction
+slow  mul       22.89      43.7     20.48  PC    -> RF     instruction>read_data_2>AluData>Mem_or_ALU
+slow  add       19.61      51.0     18.37  PC    -> RF     instruction>read_data_2>ALU_operand2>AluData>Mem_or_ALU
+slow  lw        19.61      51.0         -  PC    -> RF     instruction>read_data_2>ALU_operand2>AluData>Mem_or_ALU
+slow  sw        20.75      48.2         -  PC    -> DMEM   instruction>read_data_2>AluData
+slow  beq       15.92      62.8         -  PC    -> PC     instruction>read_data_2>ALU_operand2>alu.zero>_00000_
+fast  none       4.08     245.1         -  PC    -> XBUF   instruction>read_data_2>AluData
+fast  div        2.28     438.6         -  PC    -> RF     instruction
+fast  mul        3.91     255.8      3.65  PC    -> RF     instruction>read_data_2>AluData>Mem_or_ALU
+fast  add        3.50     285.7      3.32  PC    -> RF     instruction>read_data_2>AluData>Mem_or_ALU
+fast  lw         3.51     284.9         -  PC    -> RF     instruction>read_data_2>AluData>MemData>Mem_or_ALU
+fast  sw         3.67     272.5         -  PC    -> XBUF   instruction>read_data_2>AluData
+fast  beq        2.96     337.8         -  PC    -> PC     instruction>read_data_2>ALU_operand2>alu.zero>_00000_

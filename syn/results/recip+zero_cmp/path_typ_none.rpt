@@ -1,0 +1,92 @@
+FF groups: RF=1088 DMEM=1152 XBUF=128 PC=68
+RESULT mode=none slack=3.324 direct=NA start=PC end=DMEM
+Startpoint: _42582_ (rising edge-triggered flip-flop clocked by clk)
+Endpoint: _41328_ (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: max
+
+Fanout    Delay     Time   Description
+-----------------------------------------------------------------
+          0.000    0.000   clock clk (rise edge)
+          0.000    0.000   clock network delay (ideal)
+          0.000    0.000 ^ _42582_/CK (DFF_X1)
+    17    0.112    0.112 v _42582_/Q (DFF_X1)
+                           _00008_ (net)
+   204    0.833    0.945 ^ _21741_/ZN (NAND2_X1)
+                           _19181_ (net)
+   257    1.843    2.788 v _21742_/ZN (INV_X1)
+                           i0.SCDP.instruction[16] (net)
+     1    0.342    3.131 ^ _21827_/ZN (AOI211_X1)
+                           _19258_ (net)
+     1    0.019    3.149 v _21829_/ZN (AOI211_X1)
+                           _19260_ (net)
+     1    0.050    3.199 ^ _21830_/ZN (OAI21_X1)
+                           _19261_ (net)
+    21    0.062    3.261 v _21843_/ZN (AOI221_X1)
+                           i0.SCDP.read_data_2[3] (net)
+    50    0.452    3.713 ^ _21845_/ZN (AOI21_X1)
+                           _19275_ (net)
+     2   -0.009    3.704 v _23147_/ZN (NOR2_X1)
+                           _20521_ (net)
+     2    0.065    3.769 ^ _23148_/ZN (XNOR2_X1)
+                           _20522_ (net)
+     2    0.064    3.833 ^ _23150_/Z (XOR2_X1)
+                           _20524_ (net)
+     2    0.050    3.883 ^ _23152_/ZN (XNOR2_X1)
+                           _20526_ (net)
+     2    0.061    3.944 ^ _23155_/Z (XOR2_X1)
+                           _20529_ (net)
+     2    0.063    4.007 ^ _23169_/Z (XOR2_X1)
+                           _20543_ (net)
+     2    0.061    4.069 ^ _23171_/Z (XOR2_X1)
+                           _20545_ (net)
+     2    0.064    4.133 ^ _23195_/Z (XOR2_X1)
+                           _20569_ (net)
+     2    0.050    4.183 ^ _23197_/ZN (XNOR2_X1)
+                           _20571_ (net)
+     2    0.063    4.245 ^ _23216_/Z (XOR2_X1)
+                           _20590_ (net)
+     2    0.062    4.308 ^ _23219_/Z (XOR2_X1)
+                           _20593_ (net)
+     2    0.062    4.370 ^ _23221_/Z (XOR2_X1)
+                           _20595_ (net)
+     2    0.062    4.432 ^ _23223_/Z (XOR2_X1)
+                           _20597_ (net)
+     3    0.072    4.504 ^ _23225_/Z (XOR2_X1)
+                           _20599_ (net)
+     3    0.054    4.558 ^ _23227_/ZN (XNOR2_X1)
+                           _20601_ (net)
+     2    0.015    4.573 v _23513_/ZN (NOR2_X1)
+                           _20887_ (net)
+     2    0.049    4.622 ^ _23514_/ZN (AOI21_X1)
+                           _20888_ (net)
+     1    0.010    4.632 v _23620_/ZN (NOR2_X1)
+                           _20994_ (net)
+    35    0.356    4.988 ^ _23626_/ZN (OAI21_X1)
+                           i0.SCDP.AluData[2] (net)
+     3    0.007    4.995 v _23627_/ZN (INV_X1)
+                           _21000_ (net)
+   129    1.119    6.114 ^ _36630_/ZN (NOR2_X1)
+                           _17296_ (net)
+     6    0.075    6.189 v _38713_/ZN (NAND2_X1)
+                           _18608_ (net)
+    32    0.386    6.575 ^ _38714_/ZN (NOR2_X1)
+                           _18609_ (net)
+     1    0.060    6.635 v _38715_/Z (MUX2_X1)
+                           _02920_ (net)
+          0.000    6.635 v _41328_/D (DFF_X1)
+                   6.635   data arrival time
+
+         10.000   10.000   clock clk (rise edge)
+          0.000   10.000   clock network delay (ideal)
+          0.000   10.000   clock reconvergence pessimism
+                  10.000 ^ _41328_/CK (DFF_X1)
+         -0.041    9.959   library setup time
+                   9.959   data required time
+-----------------------------------------------------------------
+                   9.959   data required time
+                  -6.635   data arrival time
+-----------------------------------------------------------------
+                   3.324   slack (MET)
+
+

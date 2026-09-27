@@ -1,0 +1,42 @@
+FF groups: RF=1088 DMEM=1152 XBUF=128 PC=68
+RESULT mode=div slack=6.663 direct=NA start=PC end=RF
+Startpoint: _42746_ (rising edge-triggered flip-flop clocked by clk)
+Endpoint: _41626_ (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: max
+
+Fanout    Delay     Time   Description
+-----------------------------------------------------------------
+          0.000    0.000   clock clk (rise edge)
+          0.000    0.000   clock network delay (ideal)
+          0.000    0.000 ^ _42746_/CK (DFF_X1)
+    17    0.112    0.112 v _42746_/Q (DFF_X1)
+                           _00008_ (net)
+   204    0.833    0.945 ^ _21809_/ZN (NAND2_X1)
+                           _19249_ (net)
+   257    1.843    2.788 v _21810_/ZN (INV_X1)
+                           i0.SCDP.instruction[16] (net)
+     2    0.307    3.096 v _38107_/Z (MUX2_X1)
+                           _18565_ (net)
+     4    0.037    3.133 ^ _39036_/ZN (NAND2_X1)
+                           _18686_ (net)
+    32    0.095    3.228 v _39037_/ZN (NOR2_X1)
+                           _18687_ (net)
+     1    0.068    3.296 v _39038_/Z (MUX2_X1)
+                           _03112_ (net)
+          0.000    3.296 v _41626_/D (DFF_X1)
+                   3.296   data arrival time
+
+         10.000   10.000   clock clk (rise edge)
+          0.000   10.000   clock network delay (ideal)
+          0.000   10.000   clock reconvergence pessimism
+                  10.000 ^ _41626_/CK (DFF_X1)
+         -0.041    9.959   library setup time
+                   9.959   data required time
+-----------------------------------------------------------------
+                   9.959   data required time
+                  -3.296   data arrival time
+-----------------------------------------------------------------
+                   6.663   slack (MET)
+
+

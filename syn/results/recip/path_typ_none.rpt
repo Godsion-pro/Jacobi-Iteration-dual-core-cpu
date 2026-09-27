@@ -1,0 +1,94 @@
+FF groups: RF=1088 DMEM=1152 XBUF=128 PC=68
+RESULT mode=none slack=3.297 direct=NA start=PC end=DMEM
+Startpoint: _42746_ (rising edge-triggered flip-flop clocked by clk)
+Endpoint: _41405_ (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: max
+
+Fanout    Delay     Time   Description
+-----------------------------------------------------------------
+          0.000    0.000   clock clk (rise edge)
+          0.000    0.000   clock network delay (ideal)
+          0.000    0.000 ^ _42746_/CK (DFF_X1)
+    17    0.112    0.112 v _42746_/Q (DFF_X1)
+                           _00008_ (net)
+   204    0.833    0.945 ^ _21809_/ZN (NAND2_X1)
+                           _19249_ (net)
+   257    1.843    2.788 v _21810_/ZN (INV_X1)
+                           i0.SCDP.instruction[16] (net)
+     1    0.342    3.131 ^ _21895_/ZN (AOI211_X1)
+                           _19326_ (net)
+     1    0.019    3.149 v _21897_/ZN (AOI211_X1)
+                           _19328_ (net)
+     1    0.050    3.199 ^ _21898_/ZN (OAI21_X1)
+                           _19329_ (net)
+    21    0.062    3.261 v _21911_/ZN (AOI221_X1)
+                           i0.SCDP.read_data_2[3] (net)
+    50    0.459    3.720 ^ _21913_/ZN (AOI21_X1)
+                           _19343_ (net)
+     2   -0.010    3.711 v _23214_/ZN (NOR2_X1)
+                           _20588_ (net)
+     2    0.065    3.776 ^ _23215_/ZN (XNOR2_X1)
+                           _20589_ (net)
+     2    0.064    3.840 ^ _23217_/Z (XOR2_X1)
+                           _20591_ (net)
+     2    0.050    3.890 ^ _23219_/ZN (XNOR2_X1)
+                           _20593_ (net)
+     2    0.061    3.951 ^ _23222_/Z (XOR2_X1)
+                           _20596_ (net)
+     2    0.063    4.014 ^ _23236_/Z (XOR2_X1)
+                           _20610_ (net)
+     2    0.061    4.076 ^ _23238_/Z (XOR2_X1)
+                           _20612_ (net)
+     2    0.064    4.140 ^ _23262_/Z (XOR2_X1)
+                           _20636_ (net)
+     2    0.050    4.190 ^ _23264_/ZN (XNOR2_X1)
+                           _20638_ (net)
+     2    0.063    4.252 ^ _23283_/Z (XOR2_X1)
+                           _20657_ (net)
+     2    0.062    4.315 ^ _23286_/Z (XOR2_X1)
+                           _20660_ (net)
+     2    0.062    4.377 ^ _23288_/Z (XOR2_X1)
+                           _20662_ (net)
+     2    0.062    4.439 ^ _23290_/Z (XOR2_X1)
+                           _20664_ (net)
+     3    0.071    4.510 ^ _23292_/Z (XOR2_X1)
+                           _20666_ (net)
+     2    0.057    4.567 ^ _23295_/Z (XOR2_X1)
+                           _20669_ (net)
+     2    0.019    4.585 v _23579_/ZN (NAND2_X1)
+                           _20953_ (net)
+     2    0.034    4.620 v _23580_/ZN (AND2_X1)
+                           _20954_ (net)
+     1    0.013    4.633 ^ _23687_/ZN (NAND2_X1)
+                           _21061_ (net)
+     1    0.012    4.645 v _23691_/ZN (NAND2_X1)
+                           _21065_ (net)
+    39    0.394    5.039 ^ _23692_/ZN (OAI21_X1)
+                           i0.SCDP.AluData[2] (net)
+     3    0.006    5.045 v _23693_/ZN (INV_X1)
+                           _21066_ (net)
+   129    1.124    6.169 ^ _36731_/ZN (NOR2_X1)
+                           _17344_ (net)
+     4    0.051    6.220 v _38798_/ZN (NAND2_X1)
+                           _18672_ (net)
+    32    0.382    6.602 ^ _38800_/ZN (NOR2_X1)
+                           _18674_ (net)
+     1    0.060    6.662 v _38804_/Z (MUX2_X1)
+                           _02891_ (net)
+          0.000    6.662 v _41405_/D (DFF_X1)
+                   6.662   data arrival time
+
+         10.000   10.000   clock clk (rise edge)
+          0.000   10.000   clock network delay (ideal)
+          0.000   10.000   clock reconvergence pessimism
+                  10.000 ^ _41405_/CK (DFF_X1)
+         -0.041    9.959   library setup time
+                   9.959   data required time
+-----------------------------------------------------------------
+                   9.959   data required time
+                  -6.662   data arrival time
+-----------------------------------------------------------------
+                   3.297   slack (MET)
+
+

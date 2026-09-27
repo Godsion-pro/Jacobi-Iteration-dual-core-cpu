@@ -1,0 +1,44 @@
+
+13. Printing statistics.
+
+=== syn_top ===
+
+   Number of wires:              21615
+   Number of wire bits:          26075
+   Number of public wires:         260
+   Number of public wire bits:    4666
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:              21795
+     AND2_X1                       874
+     AND3_X1                       174
+     AND4_X1                        10
+     AOI211_X1                     384
+     AOI21_X1                     1920
+     AOI221_X1                      70
+     AOI222_X1                       2
+     AOI22_X1                      550
+     DFF_X1                       2436
+     INV_X1                       1197
+     LOGIC0_X1                       8
+     MUX2_X1                      2454
+     NAND2_X1                     1212
+     NAND3_X1                      308
+     NAND4_X1                      205
+     NOR2_X1                      2741
+     NOR3_X1                       530
+     NOR4_X1                       110
+     OAI211_X1                     357
+     OAI21_X1                     1753
+     OAI221_X1                      84
+     OAI22_X1                      250
+     OAI33_X1                        3
+     OR2_X1                        782
+     OR3_X1                        189
+     OR4_X1                         14
+     XNOR2_X1                     1816
+     XOR2_X1                      1362
+
+   Chip area for module '\syn_top': 34259.470000
+
