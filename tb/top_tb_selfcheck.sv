@@ -22,11 +22,14 @@ module top_tb_selfcheck;
 
    always #5 clk = ~clk;          // 100 MHz testbench clock
 
-`include "golden_expected.svh"    // GOLDEN_ITERS, golden[k][0:3]
+`include "golden_expected.svh"    // GOLDEN_ITERS, GOLDEN_RECIP, INV_Aii, golden[k][0:3]
 
    localparam int PC_END     = 180;   // "End: j End"
    localparam int PC_LAST    = 45*4;  // last valid instruction address
    localparam int MAX_CYCLES = 20000;
+   // per core per iteration: 3 mul per row x 2 rows, plus the recip variant's mul in place of div
+   localparam int MUL_PER_IT = GOLDEN_RECIP ? 8 : 6;
+   localparam int DIV_PER_IT = GOLDEN_RECIP ? 0 : 2;
 
    wire [31:0] pc0  = top.i0.SCDP.instruction_fetch.PC_address;
    wire [31:0] pc1  = top.i1.SCDP.instruction_fetch.PC_address;
@@ -49,12 +52,12 @@ module top_tb_selfcheck;
       top.i0.SCDP.data_memory.Memory[11] = 0;             // x4(0)
       top.i0.SCDP.data_memory.Memory[12] = 0;             // x1(0)
       top.i0.SCDP.data_memory.Memory[13] = 0;             // x2(0)
-      top.i0.SCDP.data_memory.Memory[0]  = 10*65536;      // a11
+      top.i0.SCDP.data_memory.Memory[0]  = GOLDEN_RECIP ? INV_A11 : 10*65536; // a11 (recip variant: 1/a11)
       top.i0.SCDP.data_memory.Memory[1]  =  1*65536;      // a12
       top.i0.SCDP.data_memory.Memory[2]  =  2*65536;      // a13
       top.i0.SCDP.data_memory.Memory[3]  =  1*65536;      // a14
       top.i0.SCDP.data_memory.Memory[4]  =  2*65536;      // a21
-      top.i0.SCDP.data_memory.Memory[5]  = 12*65536;      // a22
+      top.i0.SCDP.data_memory.Memory[5]  = GOLDEN_RECIP ? INV_A22 : 12*65536; // a22 (recip variant: 1/a22)
       top.i0.SCDP.data_memory.Memory[6]  =  1*65536;      // a23
       top.i0.SCDP.data_memory.Memory[7]  =  2*65536;      // a24
       top.i0.SCDP.data_memory.Memory[8]  =  2*65536;      // b1
@@ -67,12 +70,12 @@ module top_tb_selfcheck;
       top.i1.SCDP.data_memory.Memory[13] = 0;             // x4(0)
       top.i1.SCDP.data_memory.Memory[0]  =  1*65536;      // a31
       top.i1.SCDP.data_memory.Memory[1]  =  1*65536;      // a32
-      top.i1.SCDP.data_memory.Memory[2]  = 15*65536;      // a33
+      top.i1.SCDP.data_memory.Memory[2]  = GOLDEN_RECIP ? INV_A33 : 15*65536; // a33 (recip variant: 1/a33)
       top.i1.SCDP.data_memory.Memory[3]  =  1*65536;      // a34
       top.i1.SCDP.data_memory.Memory[4]  =  1*65536;      // a41
       top.i1.SCDP.data_memory.Memory[5]  =  2*65536;      // a42
       top.i1.SCDP.data_memory.Memory[6]  =  1*65536;      // a43
-      top.i1.SCDP.data_memory.Memory[7]  = 11*65536;      // a44
+      top.i1.SCDP.data_memory.Memory[7]  = GOLDEN_RECIP ? INV_A44 : 11*65536; // a44 (recip variant: 1/a44)
       top.i1.SCDP.data_memory.Memory[8]  =  2*65536;      // b3
       top.i1.SCDP.data_memory.Memory[9]  =  2*65536;      // b4
 
@@ -170,15 +173,16 @@ module top_tb_selfcheck;
          $display("ERROR iterations seen %0d, expected %0d", iters_seen, GOLDEN_ITERS);
       end
       for (int c = 0; c < 2; c++) begin
-         if (mul_cnt[c] != 6*GOLDEN_ITERS || div_cnt[c] != 2*GOLDEN_ITERS || rec_cnt[c] != GOLDEN_ITERS) begin
+         if (mul_cnt[c] != MUL_PER_IT*GOLDEN_ITERS || div_cnt[c] != DIV_PER_IT*GOLDEN_ITERS || rec_cnt[c] != GOLDEN_ITERS) begin
             errors = errors + 1;
             $display("ERROR core%0d event count MUL/DIV/REC = %0d/%0d/%0d, expected %0d/%0d/%0d",
-                     c, mul_cnt[c], div_cnt[c], rec_cnt[c], 6*GOLDEN_ITERS, 2*GOLDEN_ITERS, GOLDEN_ITERS);
+                     c, mul_cnt[c], div_cnt[c], rec_cnt[c], MUL_PER_IT*GOLDEN_ITERS, DIV_PER_IT*GOLDEN_ITERS, GOLDEN_ITERS);
          end
       end
       for (int i = 0; i < 4; i++) check_word($sformatf("final x%0d", i + 1), GOLDEN_ITERS, x[i], golden[GOLDEN_ITERS][i]);
 
       $display("==================== dual-core Jacobi self-check ====================");
+      $display("variant             : %s", GOLDEN_RECIP ? "recip (1/a_ii multiply)" : "divide by a_ii");
       $display("iterations          : %0d (golden %0d)", iters_seen, GOLDEN_ITERS);
       $display("cycles / iteration  : min %0d, max %0d", cpi_min, cpi_max);
       $display("cycles to End       : %0d (reset release -> PC=%0d)", end_cycle, PC_END);

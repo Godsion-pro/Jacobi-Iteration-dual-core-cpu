@@ -188,7 +188,8 @@ rtl/     원본 RTL (processor_*, SCDP_*, instruction_*, data_memory_*, alu*, co
 tb/      top_tb.sv (원본), top_tb_selfcheck.sv (재검증)
 model/   Q15.16 골든 모델
 sw/      core0.s, core1.s, asm.py
-syn/     STA 재분석 흐름 (flow.sh, syn.ys, sta_mode.tcl), patches/, results/
+syn/     STA 재분석 흐름 (flow.sh, syn.ys, sta_mode.tcl), results/
+variants/ 개선 변형 패치 (zero_cmp, recip)
 docs/    design_history.md (버전 이력, 교환 방식 결정), sta_reanalysis.md, images/
 ```
 

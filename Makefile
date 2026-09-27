@@ -7,65 +7,84 @@
 #   make asm-check    re-assemble sw/*.s and compare against the ROM words in rtl/
 #   make golden       print the golden-model convergence table
 #   make sta-tools    install yosys / sv2v / OpenSTA into $(TOOLS)   (see syn/setup_tools.sh)
-#   make sta          synthesize (Nangate45) + OpenSTA, VARIANT=baseline|zero_cmp  (~45 min)
-#   RTL_DIR=<dir>     run any target against another RTL tree (default: rtl)
+#   make sta          synthesize (Nangate45) + OpenSTA  (~45 min with the divider)
+#   VARIANT=<v>       apply variants/<v>.patch (join with +), e.g. recip, zero_cmp, recip+zero_cmp
+#   RTL_DIR=<dir>     run a target against another RTL tree (default: rtl or the patched variant)
 
 VERILATOR ?= verilator
 PYTHON    ?= python3
 BUILD     ?= build
 SEEDS     ?= 1 2 3 4 5
-RTL_DIR   ?= rtl
 TOOLS     ?= $(BUILD)/tools
 VARIANT   ?= baseline
 
+ifeq ($(VARIANT),baseline)
+RTL_DIR   ?= rtl
+VBUILD    := $(BUILD)
+RTL        = $(wildcard $(RTL_DIR)/*.sv)
+else
+RTL_DIR   ?= $(BUILD)/rtl_$(VARIANT)
+VBUILD    := $(BUILD)/$(VARIANT)
+RTL        = $(RTL_DIR)/.stamp
+PATCHES   := $(foreach p,$(subst +, ,$(VARIANT)),variants/$(p).patch)
+endif
+GOLDEN_FLAGS := $(if $(findstring recip,$(VARIANT)),--recip,)
+
 # MODDUP: every processor `includes the shared leaf modules again (original structure).
-VFLAGS = --binary --timing --assert -I$(RTL_DIR) -Itb -I$(BUILD) \
+VFLAGS = --binary --timing --assert -I$(RTL_DIR) -Itb -I$(VBUILD) \
          -Wno-fatal -Wno-MODDUP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
-RTL    = $(wildcard $(RTL_DIR)/*.sv)
 
 .PHONY: help check check-random sim wave lint asm-check golden sta-tools sta clean
 
 help:
-	@sed -n '2,12p' Makefile | sed 's/^# //'
+	@sed -n '2,13p' Makefile | sed 's/^# //'
 
-$(BUILD):
+$(VBUILD):
 	@mkdir -p $@
 
-$(BUILD)/golden_expected.svh: model/jacobi_golden.py | $(BUILD)
-	$(PYTHON) $< --svh $@
+ifneq ($(VARIANT),baseline)
+# patched copy of rtl/ for a variant
+$(RTL_DIR)/.stamp: $(wildcard rtl/*.sv) $(PATCHES)
+	rm -rf $(RTL_DIR) && mkdir -p $(RTL_DIR) && cp rtl/*.sv $(RTL_DIR)/
+	for p in $(PATCHES); do patch -s -d $(RTL_DIR) -p1 < $$p; done
+	touch $@
+endif
+
+$(VBUILD)/golden_expected.svh: model/jacobi_golden.py | $(VBUILD)
+	$(PYTHON) $< $(GOLDEN_FLAGS) --svh $@
 
 golden:
-	$(PYTHON) model/jacobi_golden.py
+	$(PYTHON) model/jacobi_golden.py $(GOLDEN_FLAGS)
 
-$(BUILD)/selfcheck/Vtop_tb_selfcheck: tb/top_tb_selfcheck.sv $(RTL) $(BUILD)/golden_expected.svh
-	$(VERILATOR) $(VFLAGS) $< --top-module top_tb_selfcheck -Mdir $(BUILD)/selfcheck
+$(VBUILD)/selfcheck/Vtop_tb_selfcheck: tb/top_tb_selfcheck.sv $(RTL) $(VBUILD)/golden_expected.svh
+	$(VERILATOR) $(VFLAGS) $< --top-module top_tb_selfcheck -Mdir $(VBUILD)/selfcheck
 
-check: $(BUILD)/selfcheck/Vtop_tb_selfcheck
+check: $(VBUILD)/selfcheck/Vtop_tb_selfcheck
 	$<
 
-$(BUILD)/random/Vtop_tb_selfcheck: tb/top_tb_selfcheck.sv $(RTL) $(BUILD)/golden_expected.svh
-	$(VERILATOR) $(VFLAGS) --x-initial unique $< --top-module top_tb_selfcheck -Mdir $(BUILD)/random
+$(VBUILD)/random/Vtop_tb_selfcheck: tb/top_tb_selfcheck.sv $(RTL) $(VBUILD)/golden_expected.svh
+	$(VERILATOR) $(VFLAGS) --x-initial unique $< --top-module top_tb_selfcheck -Mdir $(VBUILD)/random
 
-check-random: $(BUILD)/random/Vtop_tb_selfcheck
+check-random: $(VBUILD)/random/Vtop_tb_selfcheck
 	@for s in $(SEEDS); do \
 	  echo "---- seed $$s"; \
 	  $< +verilator+rand+reset+2 +verilator+seed+$$s | grep -E "RESULT|MISMATCH|ERROR|cycles to End" || exit 1; \
 	done
 
-$(BUILD)/orig/Vtop_tb: tb/top_tb.sv $(RTL)
-	$(VERILATOR) $(VFLAGS) $< --top-module top_tb -Mdir $(BUILD)/orig
+$(VBUILD)/orig/Vtop_tb: tb/top_tb.sv $(RTL)
+	$(VERILATOR) $(VFLAGS) $< --top-module top_tb -Mdir $(VBUILD)/orig
 
-sim: $(BUILD)/orig/Vtop_tb
+sim: $(VBUILD)/orig/Vtop_tb
 	$<
 
-$(BUILD)/trace/Vtop_tb_selfcheck: tb/top_tb_selfcheck.sv $(RTL) $(BUILD)/golden_expected.svh
-	$(VERILATOR) $(VFLAGS) --trace -DTRACE $< --top-module top_tb_selfcheck -Mdir $(BUILD)/trace
+$(VBUILD)/trace/Vtop_tb_selfcheck: tb/top_tb_selfcheck.sv $(RTL) $(VBUILD)/golden_expected.svh
+	$(VERILATOR) $(VFLAGS) --trace -DTRACE $< --top-module top_tb_selfcheck -Mdir $(VBUILD)/trace
 
-wave: $(BUILD)/trace/Vtop_tb_selfcheck
+wave: $(VBUILD)/trace/Vtop_tb_selfcheck
 	$<
 	@echo "waveform: $(BUILD)/wave.vcd"
 
-lint:
+lint: $(RTL)
 	-$(VERILATOR) --lint-only -Wall -Wno-MODDUP -I$(RTL_DIR) $(RTL_DIR)/top.sv --top-module top
 
 asm-check:

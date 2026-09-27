@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # STA re-analysis flow (open-source):  rtl/ -> sv2v -> Yosys (Nangate45 typ) -> OpenSTA
 #
-# usage: syn/flow.sh [baseline|zero_cmp]
+# usage: syn/flow.sh [baseline|<patch>[+<patch>...]]   e.g. zero_cmp, recip, recip+zero_cmp (variants/*.patch)
 # env:   TOOLS (default build/tools, see syn/setup_tools.sh), BUILD (default build)
 #
 # Outputs: $BUILD/syn/<variant>/{design.v, netlist.v, stat.txt, sta_*.rpt, summary.txt}
@@ -25,7 +25,9 @@ rm -rf "$W"; mkdir -p "$W/src"
 # 1. The RTL pulls modules in with `include (and includes shared leaves twice); flatten that
 #    into one file per module, then apply the variant patch if any.
 for f in "$ROOT"/rtl/*.sv; do grep -v '^[[:space:]]*`include' "$f" > "$W/src/$(basename "$f")"; done
-if [ "$VARIANT" != baseline ]; then patch -s -d "$W/src" -p1 < "$ROOT/syn/patches/$VARIANT.patch"; fi
+if [ "$VARIANT" != baseline ]; then
+  for p in ${VARIANT//+/ }; do patch -s -d "$W/src" -p1 < "$ROOT/variants/$p.patch"; done
+fi
 
 # 2. SystemVerilog -> Verilog-2005. sv2v inlines modules with interface ports into syn_top and
 #    refers to the interface buffers as syn_top.intf.*, which Yosys resolves as intf.*.

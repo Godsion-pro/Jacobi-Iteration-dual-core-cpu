@@ -80,7 +80,7 @@ T_min (ns). 괄호 안은 `T_direct`입니다.
 | sw | 6.78 | 24.01 | 4.11 | PC → 교환 버퍼 (주소 48 비교 → 버퍼 쓰기) |
 | beq | 6.92 | 24.31 | 4.22 | PC → PC. 뺄셈 → ALU 결과 → zero → 분기 mux |
 
-## 결과: zero 전용 비교기 변형 (`syn/patches/zero_cmp.patch`, `syn/results/zero_cmp/summary.txt`)
+## 결과: zero 전용 비교기 변형 (`variants/zero_cmp.patch`, `syn/results/zero_cmp/summary.txt`)
 
 `zero = (result == 0)`을 `zero = (A == B)`로 바꿨습니다.
 
