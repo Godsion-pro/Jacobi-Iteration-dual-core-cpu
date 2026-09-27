@@ -1,0 +1,20 @@
+# Yosys synthesis to Nangate45 (typical). Run from the work directory prepared by syn/flow.sh,
+# which contains design.v (sv2v output) and lib_typ.lib.
+read_verilog -sv design.v
+hierarchy -check -top syn_top
+proc
+flatten
+opt_clean
+# the always_comb ALU triggers Verilator LATCH lint warnings; confirm no latch survives synthesis
+tee -o latches.txt select -count t:$dlatch* t:$_DLATCH*
+# keep module-boundary nets so the path report shows which stage a path goes through
+setattr -set keep 1 w:*SCDP.zero w:*SCDP.AluData w:*SCDP.read_data_1 w:*SCDP.read_data_2 w:*SCDP.ALU_operand2 w:*SCDP.instruction w:*SCDP.Mem_or_ALU w:*SCDP.MemData w:*.ALUoperation w:*.branch
+synth -top syn_top
+dfflibmap -liberty lib_typ.lib
+abc -liberty lib_typ.lib
+opt_clean
+hilomap -hicell LOGIC1_X1 Z -locell LOGIC0_X1 Z
+setundef -zero
+opt_clean
+tee -o stat.txt stat -liberty lib_typ.lib
+write_verilog -noattr -noexpr netlist.v

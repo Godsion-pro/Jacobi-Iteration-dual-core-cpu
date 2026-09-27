@@ -1,0 +1,11 @@
+--- a/alu.sv
++++ b/alu.sv
+@@ -40,7 +40,7 @@
+         endcase
+ 
+         // zero 플래그 설정 (BEQ, BNE 용)
+-        zero = (result == 32'd0);
++        zero = (A == B);  // variant: dedicated comparator (beq only uses zero with ALUop=SUB)
+     end
+ 
+ endmodule

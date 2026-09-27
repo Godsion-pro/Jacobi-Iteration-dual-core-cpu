@@ -6,6 +6,8 @@
 #   make lint         verilator --lint-only -Wall on the RTL
 #   make asm-check    re-assemble sw/*.s and compare against the ROM words in rtl/
 #   make golden       print the golden-model convergence table
+#   make sta-tools    install yosys / sv2v / OpenSTA into $(TOOLS)   (see syn/setup_tools.sh)
+#   make sta          synthesize (Nangate45) + OpenSTA, VARIANT=baseline|zero_cmp  (~45 min)
 #   RTL_DIR=<dir>     run any target against another RTL tree (default: rtl)
 
 VERILATOR ?= verilator
@@ -13,16 +15,18 @@ PYTHON    ?= python3
 BUILD     ?= build
 SEEDS     ?= 1 2 3 4 5
 RTL_DIR   ?= rtl
+TOOLS     ?= $(BUILD)/tools
+VARIANT   ?= baseline
 
 # MODDUP: every processor `includes the shared leaf modules again (original structure).
 VFLAGS = --binary --timing --assert -I$(RTL_DIR) -Itb -I$(BUILD) \
          -Wno-fatal -Wno-MODDUP -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
 RTL    = $(wildcard $(RTL_DIR)/*.sv)
 
-.PHONY: help check check-random sim wave lint asm-check golden clean
+.PHONY: help check check-random sim wave lint asm-check golden sta-tools sta clean
 
 help:
-	@sed -n '2,10p' Makefile | sed 's/^# //'
+	@sed -n '2,12p' Makefile | sed 's/^# //'
 
 $(BUILD):
 	@mkdir -p $@
@@ -67,6 +71,12 @@ lint:
 asm-check:
 	$(PYTHON) sw/asm.py sw/core0.s --check $(RTL_DIR)/instruction_memory_0.sv
 	$(PYTHON) sw/asm.py sw/core1.s --check $(RTL_DIR)/instruction_memory_1.sv
+
+sta-tools:
+	syn/setup_tools.sh $(TOOLS)
+
+sta:
+	TOOLS=$(TOOLS) BUILD=$(BUILD) syn/flow.sh $(VARIANT)
 
 clean:
 	rm -rf $(BUILD)
