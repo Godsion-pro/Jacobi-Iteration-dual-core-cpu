@@ -18,7 +18,7 @@ mkdir -p "$W"
 R=$ROOT/syn/results/$VARIANT
 mkdir -p "$R"
 {
-  echo "# OpenROAD $("$TOOLS/openroad-env/bin/openroad" -version 2>/dev/null | head -1), Nangate45 typ, target $PERIOD ns, utilization ${UTIL:-40} %"
+  echo "# OpenROAD $("$TOOLS/openroad-env/bin/openroad" -version 2>/dev/null | head -1 | xargs), Nangate45 typ, target $PERIOD ns, utilization ${UTIL:-40} %"
   echo "# T_min = target - worst setup slack after each step"
   grep '^STAGE' "$W/pnr.log"
   grep -i 'design area' "$W/pnr.log" | tail -1

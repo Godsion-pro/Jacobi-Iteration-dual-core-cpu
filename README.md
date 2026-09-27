@@ -17,6 +17,8 @@
 | div 명령 지연 | 2.624 ns (clk 상승 → 목적 레지스터 반영) | 보고서, 게이트 레벨 시뮬레이션 1건 관측치. STA 기반 Fmax 아님 |
 | STA 재분석 (2026) | 크리티컬 패스는 조합 64-bit 나눗셈기: div → RF 54.03 ns (Nangate45 typ, Fmax 18.5 MHz) | [`docs/sta_reanalysis.md`](docs/sta_reanalysis.md), 공개 라이브러리 기준이라 절대값은 비교용 아님 |
 | 개선: 역수 곱셈 (2026) | 나눗셈을 1/a_ii 곱셈으로 바꾸고 나눗셈기 제거 → 제약 없는 STA 최악 경로 55.38 → 6.70 ns (**8.3×**), 면적 −32%. 사이클 수 동일, 결과는 x4만 1 LSB 차이 | [`variants/recip.patch`](variants/recip.patch), `make check VARIANT=recip` |
+| 개선: 5단 파이프라인 (2026) | forwarding · load-use stall · 분기 flush. 반복당 51 cycle, 랜덤 초기화 10 seed PASS. 버퍼링·배치 후 주기 2.77 → 2.39 ns지만 반복 1회 시간은 121.7 → 121.9 ns로 **비슷함** (병목은 곱셈기) | [`variants/pipe/`](variants/pipe/), `make check VARIANT=recip+pipe` |
+| 버퍼링까지 한 재측정 (2026) | OpenROAD 배치 · repair_design · CTS · repair_timing. 반복 1회 시간 원본 1,839 ns → 최선 121.7 ns (**15.1×**) | [`syn/pnr.tcl`](syn/pnr.tcl), `make pnr` |
 
 ## 구조
 
@@ -138,10 +140,25 @@ MIPS I 포맷을 따르되 아래가 다릅니다. 전체 인코딩은 [`sw/asm.
 - 그래서 먼저 **나눗셈을 없앴습니다(recip)**. a_ii는 반복 내내 상수이므로 1/a_ii(Q15.16)를 대각 원소 자리에 미리 저장하고, 코어당 `div` 2개를 `mul`로 바꾼 뒤 ALU에서 나눗셈기를 제거했습니다. 제약 없는 최악 경로가 **8.3배** 짧아지고 면적은 32% 줄었습니다.
   - 사이클 수(End까지 2,201)는 그대로입니다. 결과는 x4만 9063 → 9064로, 정확한 해와의 오차가 0.75 → 0.25 LSB로 오히려 줄었습니다.
   - self-check TB의 50회 반복 전 구간과 랜덤 초기값 3 seed가 모두 PASS입니다.
-- recip 이후에는 mul 직접 경로(5.86 ns)의 약 46%를 명령어 ROM 디코드(약 2.7 ns)가 차지합니다. 이제는 한 블록이 사이클을 지배하지 않으므로, 다음 단계는 IF를 떼어내는 파이프라인입니다. 다만 이 합성 흐름은 fanout 버퍼링을 하지 않아 디코드 지연이 부풀려져 있습니다(자세한 내용은 문서 참고).
+- recip 이후 합성 직후 기준으로는 mul 직접 경로(5.86 ns)의 약 46%를 명령어 ROM 디코드(약 2.7 ns)가 차지했습니다. 하지만 이 합성 흐름은 fanout 버퍼링을 하지 않아 디코드 지연이 부풀려져 있었고, 버퍼링까지 한 재측정(아래)에서는 병목이 곱셈기로 나왔습니다.
 - 일반 STA의 최악 경로는 div 실행 중에는 쓰이지 않는 div → zero → PC false path였습니다. zero를 전용 비교기로 분리하면 이 경로가 사라지고 beq가 26% 짧아집니다. self-check TB로 기능이 같음을 확인했습니다.
 - 45 nm typ에서도 나눗셈기 최악 지연이 약 54 ns라서, 보고서의 2.624 ns는 특정 피연산자에서 관측된 값으로 봐야 합니다.
 - 전체 corner·명령어별 결과는 [`syn/results/`](syn/results/)에 있습니다.
+
+### 파이프라인과 버퍼링까지 한 재측정
+
+합성 직후 STA는 fanout 버퍼링과 사이징이 없는 넷리스트 기준입니다. max slew/cap 위반이 수백 개라 수치가 부풀려져 있습니다. 그래서 같은 넷리스트를 OpenROAD로 배치하고, repair_design → CTS → repair_timing(목표 2.0 ns, 원본은 40 ns)을 거친 뒤 다시 쟀습니다. 5단 파이프라인(`variants/pipe/`)도 이 기준으로 비교했습니다.
+
+| 설계 (typ) | 합성 직후 T_min | 수리 후 T_min | cycle/반복 | 반복 1회 | 면적 (µm²) |
+|---|---:|---:|---:|---:|---:|
+| 원본 | 55.38 ns | 41.79 ns | 44 | 1,839 ns | 57,295 |
+| recip + zero 비교기 | 6.68 ns | 2.77 ns | 44 | **121.7 ns** | 39,573 |
+| recip + zero 비교기 + 5단 파이프라인 | 3.53 ns | **2.39 ns** | 51 | 121.9 ns | 43,772 |
+
+- 합성 직후만 보면 파이프라인이 주기를 1.9배 줄이는 것처럼 보였습니다. 버퍼링 후에는 1.16배(2.77 → 2.39 ns)입니다. 사이클 증가(+7: load-use stall 6, `j` flush 1)까지 넣으면 반복 1회 시간은 단일 사이클과 비슷하고, 면적은 +11%입니다.
+- 파이프라인의 최악 경로는 MEM/WB → forwarding → 32×32 곱셈기 → EX/MEM입니다. 파이프라인이 효과를 보려면 곱셈기를 2단으로 나눠야 합니다.
+- 파이프라인 검증 중, 랜덤 초기화 회귀에서 동기 리셋 파이프라인이 리셋 중 첫 엣지에 DMEM을 쓰는 버그를 찾아 고쳤습니다(쓰기 enable을 reset으로 qualify).
+- 같은 측정을 상용 툴(Genus/Innovus/Tempus, gsclib045)로 하는 스크립트는 [`syn/cadence/`](syn/cadence/)에 있습니다. 아직 실행 전입니다.
 
 ## 합성 · P&R (보고서 기준)
 
@@ -188,6 +205,8 @@ make lint
 make sta-tools && make sta   # STA 재분석 (Yosys + OpenSTA, 합성 ~45분)
 make check VARIANT=recip     # 개선 변형 검증 (variants/*.patch, + 로 조합: recip+zero_cmp)
 make sta VARIANT=recip       # 개선 변형 STA (나눗셈기가 없어 수 분)
+make check VARIANT=recip+zero_cmp+pipe     # 5단 파이프라인 (variants/pipe/)
+make pnr-tools && make pnr VARIANT=recip+zero_cmp+pipe PERIOD=2   # OpenROAD (make sta 이후)
 make check RTL_DIR=<dir>   # 다른 RTL 트리(예: 원본 커밋 checkout)로 같은 검사
 ```
 
@@ -198,8 +217,8 @@ rtl/     원본 RTL (processor_*, SCDP_*, instruction_*, data_memory_*, alu*, co
 tb/      top_tb.sv (원본), top_tb_selfcheck.sv (재검증)
 model/   Q15.16 골든 모델
 sw/      core0.s, core1.s, asm.py
-syn/     STA 재분석 흐름 (flow.sh, syn.ys, sta_mode.tcl), results/
-variants/ 개선 변형 패치 (zero_cmp, recip)
+syn/     STA 재분석 흐름 (flow.sh, syn.ys, sta_mode.tcl), OpenROAD (pnr.tcl), cadence/, results/
+variants/ 개선 변형 (zero_cmp.patch, recip.patch, pipe/ 5단 파이프라인)
 docs/    design_history.md (버전 이력, 교환 방식 결정), sta_reanalysis.md, images/
 ```
 

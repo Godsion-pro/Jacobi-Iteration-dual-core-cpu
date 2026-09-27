@@ -1,0 +1,8 @@
+# OpenROAD 2.0-12381-g01bba3695, Nangate45 typ, target 2.5 ns, utilization 40 %
+# T_min = target - worst setup slack after each step
+STAGE synth          T_min    6.676 ns  Fmax   149.8 MHz  instances  21795  DRV slew  196 cap  316
+STAGE placed         T_min    8.116 ns  Fmax   123.2 MHz  instances  21795  DRV slew  740 cap  344
+STAGE repair_design  T_min    3.398 ns  Fmax   294.3 MHz  instances  21931  DRV slew    0 cap    2
+STAGE cts            T_min    3.264 ns  Fmax   306.4 MHz  instances  22204  DRV slew    0 cap    2
+STAGE repair_timing  T_min    2.733 ns  Fmax   365.9 MHz  instances  22467  DRV slew    0 cap    7
+Design area 39957 u^2 47% utilization.
