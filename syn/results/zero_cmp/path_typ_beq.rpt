@@ -1,0 +1,74 @@
+FF groups: RF=1088 DMEM=1152 XBUF=128 PC=68
+RESULT mode=beq slack=4.865 direct=NA start=PC end=PC
+Startpoint: _68677_ (rising edge-triggered flip-flop clocked by clk)
+Endpoint: _68684_ (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: max
+
+Fanout    Delay     Time   Description
+-----------------------------------------------------------------
+          0.000    0.000   clock clk (rise edge)
+          0.000    0.000   clock network delay (ideal)
+          0.000    0.000 ^ _68677_/CK (DFF_X1)
+     7    0.092    0.092 v _68677_/Q (DFF_X1)
+                           _00036_ (net)
+   247    0.931    1.023 ^ _44392_/ZN (NAND2_X1)
+                           _12067_ (net)
+   248    1.974    2.997 v _44393_/ZN (INV_X1)
+                           i1.SCDP.instruction[16] (net)
+     1    0.254    3.251 ^ _44418_/ZN (OAI21_X1)
+                           _12090_ (net)
+     1    0.036    3.286 v _44419_/ZN (OAI22_X1)
+                           _12091_ (net)
+     1    0.037    3.323 ^ _44420_/ZN (OAI21_X1)
+                           _12092_ (net)
+     1    0.019    3.342 v _44421_/ZN (AOI21_X1)
+                           _12093_ (net)
+    21    0.216    3.558 ^ _44422_/ZN (AOI221_X1)
+                           i1.SCDP.read_data_2[31] (net)
+    69    0.396    3.954 v _44426_/ZN (AOI21_X1)
+                           _12096_ (net)
+    23    0.315    4.269 ^ _52708_/ZN (XNOR2_X1)
+                           _20278_ (net)
+     3    0.045    4.313 v _58679_/ZN (OAI21_X1)
+                           _26215_ (net)
+     1    0.044    4.357 ^ _58686_/ZN (NOR3_X1)
+                           _26222_ (net)
+     2    0.035    4.392 v _58700_/ZN (NAND4_X1)
+                           _26236_ (net)
+     2    0.061    4.452 ^ _58767_/ZN (NOR4_X1)
+                           i1.SCDP.alu.zero (net)
+     9    0.074    4.527 ^ _64311_/ZN (AND2_X1)
+                           _31659_ (net)
+     1    0.010    4.537 v _64350_/ZN (NOR2_X1)
+                           _31695_ (net)
+    24    0.225    4.762 ^ _64352_/ZN (OAI221_X1)
+                           _31697_ (net)
+    19    0.089    4.851 v _64353_/ZN (INV_X1)
+                           _03138_ (net)
+     3    0.095    4.946 ^ _64368_/ZN (NOR3_X1)
+                           _31711_ (net)
+     4    0.023    4.969 v _64369_/ZN (INV_X1)
+                           _31712_ (net)
+     6    0.073    5.041 ^ _64370_/ZN (NOR2_X1)
+                           _31713_ (net)
+     1    0.011    5.052 v _64469_/ZN (NOR3_X1)
+                           _31796_ (net)
+     1    0.046    5.099 ^ _64472_/ZN (AOI21_X1)
+                           _00001_[20] (net)
+          0.000    5.099 ^ _68684_/D (DFF_X1)
+                   5.099   data arrival time
+
+         10.000   10.000   clock clk (rise edge)
+          0.000   10.000   clock network delay (ideal)
+          0.000   10.000   clock reconvergence pessimism
+                  10.000 ^ _68684_/CK (DFF_X1)
+         -0.036    9.964   library setup time
+                   9.964   data required time
+-----------------------------------------------------------------
+                   9.964   data required time
+                  -5.099   data arrival time
+-----------------------------------------------------------------
+                   4.865   slack (MET)
+
+
